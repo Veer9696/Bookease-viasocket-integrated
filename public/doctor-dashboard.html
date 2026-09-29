@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - BookEase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+            min-height: 80vh;
+            margin-top: 2rem;
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sidebar-menu li {
+            list-style: none;
+        }
+
+        .sidebar-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            color: var(--text-gray);
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .sidebar-menu a:hover {
+            background: var(--bg-light);
+            color: var(--primary);
+        }
+
+        .sidebar-menu a.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .report-card {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container pt-4">
+        <div class="flex justify-between items-center mb-4">
+            <h1 style="font-size: 2rem; font-weight:700;">Doctor Workspace</h1>
+            <a href="index.html" class="btn btn-outline" style="border:none; color:var(--danger)">Log Out</a>
+        </div>
+
+        <div class="dashboard-layout">
+            <!-- Sidebar -->
+            <div class="card h-fit">
+                <div class="flex items-center gap-4 mb-8">
+                    <div
+                        style="width:50px; height:50px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem;">
+                        DW</div>
+                    <div>
+                        <h3 class="font-bold">Dr. James Wilson</h3>
+                        <p class="text-sm text-gray">Neurology</p>
+                    </div>
+                </div>
+
+                <ul class="sidebar-menu">
+                    <li><a onclick="switchTab('tab-appointments')" class="active"
+                            id="link-appointments">Appointments</a></li>
+                    <li><a onclick="switchTab('tab-patients')" id="link-patients">Patients</a></li>
+                    <li><a onclick="switchTab('tab-reports')" id="link-reports">Reports History</a></li>
+                    <li><a onclick="switchTab('tab-create')" id="link-create">Create Report</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div>
+
+                <!-- Appointments Tab -->
+                <div id="tab-appointments" class="tab-content active">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="font-bold text-lg">Today's Appointments</h2>
+                    </div>
+                    <div class="card">
+                        <table class="w-full text-left" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <th class="py-2 text-gray">Patient</th>
+                                    <th class="py-2 text-gray">Time</th>
+                                    <th class="py-2 text-gray">Type</th>
+                                    <th class="py-2 text-gray">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="border-bottom: 1px solid var(--border);">
+                                    <td class="py-4 font-bold">John Doe</td>
+                                    <td class="py-4">10:00 AM</td>
+                                    <td class="py-4"><span class="badge badge-primary">Consultation</span></td>
+                                    <td class="py-4"><button class="btn btn-outline"
+                                            onclick="startReport('John Doe', 'john@example.com', 'APT-1001')">Write
+                                            Report</button></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-4 font-bold">Emily Rivera</td>
+                                    <td class="py-4">02:30 PM</td>
+                                    <td class="py-4"><span class="badge badge-success">Follow-up</span></td>
+                                    <td class="py-4"><button class="btn btn-outline"
+                                            onclick="startReport('Emily Rivera', 'emily@example.com', 'APT-1002')">Write
+                                            Report</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="tab-patients" class="tab-content">
+                    <h2 class="font-bold text-lg mb-6">Patient Roster</h2>
+                    <p class="text-gray text-sm">Demo Data Loading...</p>
+                </div>
+
+                <!-- Reports History Tab -->
+                <div id="tab-reports" class="tab-content">
+                    <h2 class="font-bold text-lg mb-6">Generated Reports</h2>
+                    <div id="reportsList">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Create Report Tab -->
+                <div id="tab-create" class="tab-content">
+                    <h2 class="font-bold text-lg mb-2">Create Medical Report</h2>
+                    <p class="text-gray text-sm mb-6">Fill in consultation findings natively. Submitting this form
+                        issues <code style="background:var(--bg-light); padding:0.2rem;"
+                            class="text-primary">medical.report.created</code> event.</p>
+
+                    <div class="card bg-light mb-6 p-4">
+                        <p class="mb-1"><strong>Patient:</strong> <span id="rPtName">- Select an appointment -</span>
+                        </p>
+                        <p><strong>Appointment ID:</strong> <span id="rAptId">-</span></p>
+                    </div>
+
+                    <form id="reportForm" onsubmit="generateReport(event)">
+                        <input type="hidden" id="rPtEmail">
+
+                        <div class="form-group">
+                            <label class="form-label">Diagnosis</label>
+                            <input type="text" class="form-control" id="rDiag" required placeholder="Primary Diagnosis">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Observations</label>
+                            <textarea class="form-control" id="rObs" required
+                                placeholder="Clinical observations..."></textarea>
+                        </div>
+
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Recommendations</label>
+                                <textarea class="form-control" id="rRec" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Prescription</label>
+                                <textarea class="form-control" id="rRx"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">Follow-up Instructions</label>
+                                <textarea class="form-control" id="rFollowup"
+                                    placeholder="e.g. Return in 2 weeks"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Additional Notes</label>
+                                <textarea class="form-control" id="rNotes"
+                                    placeholder="Optional notes for patient..."></textarea>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="btnGenReport">Generate Report
+                            (Draft/Complete)</button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let generatedReports = [];
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-menu a').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('link-' + tabId.replace('tab-', '')).classList.add('active');
+            if (tabId === 'tab-reports') renderReports();
+        }
+
+        function startReport(ptName, ptEmail, aptId) {
+            document.getElementById('rPtName').innerText = ptName;
+            document.getElementById('rAptId').innerText = aptId;
+            document.getElementById('rPtEmail').value = ptEmail;
+            switchTab('tab-create');
+        }
+
+        async function generateReport(e) {
+            e.preventDefault();
+            const ptName = document.getElementById('rPtName').innerText;
+            if (ptName.includes('-')) return showToast("Select a patient from Appointments first", "error");
+
+            const btn = document.getElementById('btnGenReport');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
+
+            const payload = {
+                patient: {
+                    id: "PAT-" + Math.floor(Math.random() * 10000),
+                    name: ptName,
+                    email: document.getElementById('rPtEmail').value
+                },
+                doctor: {
+                    id: "DOC-002",
+                    name: "Dr. James Wilson",
+                    specialty: "Neurology"
+                },
+                appointment: {
+                    id: document.getElementById('rAptId').innerText,
+                    booking_id: "BK-SAMPLE-1",
+                    date: new Date().toISOString().split('T')[0]
+                },
+                result: {
+                    diagnosis: document.getElementById('rDiag').value,
+                    observations: document.getElementById('rObs').value,
+                    recommendations: document.getElementById('rRec').value,
+                    prescription: document.getElementById('rRx').value,
+                    follow_up: document.getElementById('rFollowup').value,
+                    notes: document.getElementById('rNotes').value
+                }
+            };
+
+            try {
+                const res = await fetch('/api/reports', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                // Save locally for dashboard display
+                generatedReports.push(data.payload);
+
+                if (data.automationTriggered) showToast("Report Created! Triggered Webhook.", "success");
+                else showToast("Report Created Locally", "success");
+
+                document.getElementById('reportForm').reset();
+                document.getElementById('rPtName').innerText = "- Select an appointment -";
+                switchTab('tab-reports');
+
+            } catch (err) {
+                showToast("Server error", "error");
+            } finally {
+                btn.innerText = "Generate Report (Draft/Complete)";
+                btn.disabled = false;
+            }
+        }
+
+        function renderReports() {
+            const list = document.getElementById('reportsList');
+            if (generatedReports.length === 0) {
+                list.innerHTML = `<p class="text-gray text-sm">No reports generated today.</p>`;
+                return;
+            }
+
+            let html = '';
+            generatedReports.forEach(r => {
+                html += `
+            <div class="report-card" id="rep-${r.report.id}">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="font-bold text-lg">${r.patient.name} <span class="text-sm font-normal text-gray">(${r.appointment.id})</span></h3>
+                        <p class="text-sm text-gray">Diagnosis: ${r.result.diagnosis}</p>
+                    </div>
+                    <span class="badge ${r.report.status === 'sent' ? 'badge-success' : 'badge-primary'}" id="bdg-${r.report.id}">${r.report.status.toUpperCase()}</span>
+                </div>
+                <div class="bg-light p-4 rounded-lg text-sm mb-4">
+                    <b>Observations:</b> ${r.result.observations}<br>
+                    <b>Actions:</b> ${r.result.recommendations}
+                </div>
+                ${r.report.status !== 'sent' ? `<button class="btn btn-outline" onclick='sendReport(${JSON.stringify(r)})'>Send Report to Patient</button>` : `<p class="text-sm text-success">Report Sent Confirmed ✔</p>`}
+            </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        async function sendReport(repData) {
+            showToast("Sending...");
+            try {
+                const res = await fetch(`/api/reports/${repData.report.id}/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient: repData.patient, doctor: repData.doctor, appointment: repData.appointment
+                    })
+                });
+                const d = await res.json();
+
+                let stored = generatedReports.find(x => x.report.id === repData.report.id);
+                if (stored) stored.report.status = 'sent';
+
+                renderReports();
+                if (d.automationTriggered) showToast("Sent! Webhook Triggered.", "success");
+                else showToast("Sent to local patient dash.", "success");
+            } catch (e) { showToast("Network Error", "error"); }
+        }
+
+    </script>
+</body>
+
+</html>

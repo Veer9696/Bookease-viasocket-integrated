@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results Analyzer - BookEase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 2rem;
+        }
+
+        .tab {
+            padding: 1rem 2rem;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-gray);
+            position: relative;
+        }
+
+        .tab.active {
+            color: var(--primary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+
+        .input-table th {
+            text-align: left;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-gray);
+        }
+
+        .input-table td {
+            padding: 0.5rem;
+        }
+
+        .input-table input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+        }
+
+        .remove-row {
+            color: var(--danger);
+            cursor: pointer;
+            font-weight: bold;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            border: 10px solid var(--warning);
+            padding: 1rem;
+        }
+
+        .template-chips {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .chip {
+            padding: 0.25rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .chip:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container mt-4">
+        <h1 class="font-bold text-lg mb-2" style="font-size: 2rem;">Advanced Results Analyzer 🤖</h1>
+        <p class="text-gray mb-4">Input your lab values to get an AI-generated health score and interpretations.</p>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab(1)">Paste Values</div>
+            <div class="tab" onclick="switchTab(2)">Upload Report (PDF/Img)</div>
+        </div>
+
+        <!-- Tab 1: Paste Values -->
+        <div id="tab1" class="tab-content active">
+            <div class="card mb-4" id="inputSection">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <span class="text-sm font-bold block mb-2">Quick Templates:</span>
+                        <div class="template-chips">
+                            <div class="chip" onclick="loadTemplate('CBC')">CBC</div>
+                            <div class="chip" onclick="loadTemplate('Lipid')">Lipid Panel</div>
+                            <div class="chip" onclick="loadTemplate('LFT')">Liver (LFT)</div>
+                            <div class="chip" onclick="loadTemplate('Thyroid')">Thyroid</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" onclick="addRow()">+ Add Row</button>
+                </div>
+
+                <table class="input-table" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th width="40%">Parameter Name</th>
+                            <th width="20%">Your Value</th>
+                            <th width="20%">Unit (opt)</th>
+                            <th width="10%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rowsBody">
+                        <tr>
+                            <td><input type="text" placeholder="e.g. Hemoglobin"></td>
+                            <td><input type="number" placeholder="Value"></td>
+                            <td><input type="text" placeholder="g/dL"></td>
+                            <td class="text-center"><button class="remove-row" onclick="removeRow(this)">✕</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="mt-4 flex justify-end">
+                    <button class="btn btn-primary" onclick="runAnalysis()">🪄 Analyze Results</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Upload -->
+        <div id="tab2" class="tab-content">
+            <div class="card mb-4 text-center py-4"
+                style="border: 2px dashed var(--primary); background: var(--primary-light); cursor: pointer;"
+                onclick="document.getElementById('fileUpload').click()">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                <h3 class="font-bold">Upload Report Here</h3>
+                <p class="text-sm text-gray">Auto-extract values via AI OCR</p>
+                <input type="file" id="fileUpload" style="display:none;" onchange="fakeUpload()">
+            </div>
+        </div>
+
+        <!-- Results Area (Hidden initially) -->
+        <div id="resultsArea" style="display: none;">
+            <h2 class="font-bold mb-4 mt-4 text-lg">Analysis Report</h2>
+
+            <div class="grid grid-3" style="grid-template-columns: 1fr 2fr;">
+                <!-- Left: Score -->
+                <div class="card text-center flex flex-col justify-center">
+                    <h3 class="font-bold mb-4">Overall Health Score</h3>
+                    <div class="score-circle">
+                        <span style="font-size: 2.5rem; font-weight: bold; line-height: 1;">82</span>
+                        <span class="text-sm text-warning font-bold">/ 100</span>
+                    </div>
+                    <p class="text-sm text-gray mt-4">Needs slight improvement. 2 parameters outside normal bounds.</p>
+                </div>
+
+                <!-- Right: Table & Recommendations -->
+                <div class="card">
+                    <h3 class="font-bold mb-2">Parameter Breakdown</h3>
+                    <table class="reports-table" style="box-shadow: none; border: 1px solid var(--border);">
+                        <thead style="background: var(--bg-light)">
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Result</th>
+                                <th>Standard Range</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody">
+                            <!-- populated in js -->
+                        </tbody>
+                    </table>
+
+                    <h3 class="font-bold mt-4 mb-2">AI Recommendations</h3>
+                    <div class="p-2 mb-2"
+                        style="background:#fef2f2; border-left:4px solid var(--danger); border-radius:0.5rem;">
+                        <p class="text-sm font-bold text-danger">⚠️ High LDL Detected</p>
+                        <p class="text-sm">Reduce saturated fats (fried food, red meat). Substitute with omega fatty
+                            acids.</p>
+                    </div>
+                    <div class="p-2"
+                        style="background:#fffbeb; border-left:4px solid var(--warning); border-radius:0.5rem;">
+                        <p class="text-sm font-bold text-warning">⚠ Borderline Glucose</p>
+                        <p class="text-sm">Monitor sugar intake. Consider a fasting blood work follow-up in 3 months.
+                        </p>
+                    </div>
+
+                    <div class="flex gap-4 mt-4 pt-4" style="border-top:1px solid var(--border);">
+                        <button class="btn btn-outline flex-1 justify-center">📄 Download PDF</button>
+                        <button class="btn btn-primary flex-1 justify-center"
+                            onclick="showToast('Analysis shared with Dr. Sarah Smith.')">📤 Share with Doctor</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach((t, i) => {
+                t.className = `tab ${i + 1 === tabId ? 'active' : ''}`;
+            });
+            document.querySelectorAll('.tab-content').forEach((c, i) => {
+                c.className = `tab-content ${i + 1 === tabId ? 'active' : ''}`;
+            });
+        }
+
+        function addRow(name = '', val = '', unit = '') {
+            const tbody = document.getElementById('rowsBody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+        <td><input type="text" placeholder="Parameter" value="${name}"></td>
+        <td><input type="number" placeholder="Value" value="${val}"></td>
+        <td><input type="text" placeholder="Unit" value="${unit}"></td>
+        <td class="text-center"><button class="remove-row" onclick="removeRow(this)">✕</button></td>
+      `;
+            tbody.appendChild(tr);
+        }
+
+        function removeRow(btn) {
+            if (document.querySelectorAll('#rowsBody tr').length > 1) {
+                btn.closest('tr').remove();
+            }
+        }
+
+        const templates = {
+            'CBC': [['Hemoglobin', '13.5', 'g/dL'], ['WBC Count', '7500', 'cumm'], ['Platelets', '250000', 'mcL']],
+            'Lipid': [['Total Cholesterol', '190', 'mg/dL'], ['HDL Cholesterol', '45', 'mg/dL'], ['LDL Cholesterol', '140', 'mg/dL']],
+            'LFT': [['Bilirubin Total', '0.9', 'mg/dL'], ['SGPT/ALT', '55', 'U/L'], ['SGOT/AST', '25', 'U/L']],
+            'Thyroid': [['TSH', '3.5', 'uIU/mL'], ['Free T4', '1.2', 'ng/dL']]
+        };
+
+        function loadTemplate(key) {
+            document.getElementById('rowsBody').innerHTML = '';
+            templates[key].forEach(arr => addRow(arr[0], arr[1], arr[2]));
+            showToast(`Loaded ${key} template`);
+        }
+
+        function runAnalysis() {
+            // Mock analysis processing
+            showToast('Processing AI Analysis...', 'success');
+            setTimeout(() => {
+                const rows = document.querySelectorAll('#rowsBody tr');
+                let html = '';
+                rows.forEach(r => {
+                    const inputs = r.querySelectorAll('input');
+                    if (inputs[0].value && inputs[1].value) {
+                        const v = parseFloat(inputs[1].value);
+                        // mock logic
+                        let clr = '#f0fdf4'; let icn = '✔'; let vclr = 'var(--text-dark)';
+                        if (inputs[0].value.toLowerCase().includes('ldl') && v > 100) { clr = '#fef2f2'; icn = '⚠'; vclr = 'var(--danger)'; }
+                        if (inputs[0].value.toLowerCase().includes('alt') && v > 40) { clr = '#fffbeb'; icn = '⚠'; vclr = 'var(--warning)'; }
+
+                        html += `
+              <tr style="background:${clr}">
+                <td class="font-bold">${inputs[0].value}</td>
+                <td style="color:${vclr}; font-weight:bold;">${v} ${inputs[2].value} ${icn}</td>
+                <td class="text-sm text-gray">Varies</td>
+              </tr>
+            `;
+                    }
+                });
+                if (!html) { return showToast('Please enter at least one parameter', 'error'); }
+                document.getElementById('resultTableBody').innerHTML = html;
+                document.getElementById('inputSection').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'block';
+            }, 800);
+        }
+
+        function fakeUpload() {
+            showToast('File extracted successfully!', 'success');
+            switchTab(1);
+            loadTemplate('Lipid');
+            runAnalysis();
+        }
+    </script>
+</body>
+
+</html>

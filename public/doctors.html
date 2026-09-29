@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find Doctors - BookEase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .filter-bar {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            box-shadow: var(--shadow-md);
+            margin-top: -3rem;
+            position: relative;
+            z-index: 10;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar .form-group {
+            margin-bottom: 0;
+            min-width: 200px;
+            flex: 1;
+        }
+
+        .doc-card {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .doc-imgbox {
+            height: 180px;
+            width: 100%;
+            background: var(--bg-light);
+            text-align: center;
+        }
+
+        .doc-imgbox img {
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .doc-details {
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-col;
+            justify-content: space-between;
+        }
+
+        .avail-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--success);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-gray);
+        }
+
+        .profile-header {
+            display: flex;
+            gap: 2rem;
+            padding: 2rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-light);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="hero pt-4" style="padding-bottom: 5rem;">
+        <h1 style="font-size: 2.5rem; margin-top:2rem;">Find the Right Specialist</h1>
+        <p>Book appointments with the best doctors in your area.</p>
+    </div>
+
+    <div class="container" style="padding-top:0;">
+        <div class="filter-bar">
+            <div class="form-group flex-1">
+                <input type="text" class="form-control" id="nameSearch" placeholder="Search doctor by name..."
+                    onkeyup="renderDoctors()">
+            </div>
+            <div class="form-group">
+                <select class="form-control" id="specFilter" onchange="renderDoctors()">
+                    <option value="">All Specialties</option>
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="Neurology">Neurology</option>
+                    <option value="Dermatology">Dermatology</option>
+                    <option value="Orthopedics">Orthopedics</option>
+                    <option value="Gynecology">Gynecology</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-3 mt-4 pt-4" id="doctorGrid">
+            <!-- Generated via JS -->
+        </div>
+
+        <div class="text-center mt-4 pt-4">
+            <button class="btn btn-outline" id="loadMoreBtn" onclick="loadMore()">Load More Doctors</button>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="docModal" onclick="closeModal(event)">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <button class="modal-close"
+                onclick="document.getElementById('docModal').classList.remove('active')">✕</button>
+
+            <div class="profile-header">
+                <img id="mImg" src="" alt=""
+                    style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; box-shadow: var(--shadow);">
+                <div class="flex flex-col justify-center">
+                    <h2 id="mName" class="font-bold text-lg mb-1" style="font-size: 2rem;">Name</h2>
+                    <p id="mSpec" class="text-primary font-bold mb-2">Speciality</p>
+                    <div class="flex gap-4 text-sm text-gray mb-4">
+                        <span>⭐ <span id="mRat" class="font-bold text-dark">4.9</span> / 5.0 Rating</span>
+                        <span>📅 <span id="mExp" class="font-bold text-dark">10 years</span> Exp</span>
+                        <span>🏥 <span id="mClinic" class="font-bold text-dark">Clinic</span></span>
+                    </div>
+                    <div class="flex gap-2">
+                        <span class="badge badge-primary" id="mQual">MD</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-8" style="padding: 2rem;">
+                <div class="grid grid-2" style="align-items: start;">
+                    <div>
+                        <h3 class="font-bold mb-2">About Doctor</h3>
+                        <p class="text-gray text-sm mb-4">A highly experienced specialist committed to providing the
+                            best patient care. Experienced in complex diagnoses and compassionate treatments.</p>
+
+                        <h3 class="font-bold mb-2">Consultation Fee</h3>
+                        <p class="font-bold text-primary" style="font-size: 1.5rem;">$<span id="mFee">100</span></p>
+                    </div>
+
+                    <div>
+                        <div class="card bg-light" style="background:#f9fafb;">
+                            <h3 class="font-bold mb-4">Available Time Slots</h3>
+                            <div class="flex gap-2 mb-4 flex-wrap">
+                                <button class="btn btn-outline" style="padding:0.25rem 0.5rem; font-size:0.8rem;">10:00
+                                    AM</button>
+                                <button class="btn btn-primary" style="padding:0.25rem 0.5rem; font-size:0.8rem;">02:00
+                                    PM</button>
+                            </div>
+                            <a href="book.html" class="btn btn-primary w-full justify-center mt-2">Book Appointment</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        let allDoctors = [];
+        let visibleCount = 6;
+
+        async function fetchDoctors() {
+            try {
+                const res = await fetch('/api/doctors');
+                allDoctors = await res.json();
+                renderDoctors();
+            } catch (err) {
+                console.error("Failed to load backend doctors", err);
+            }
+        }
+
+        function renderDoctors() {
+            const grid = document.getElementById('doctorGrid');
+            grid.innerHTML = '';
+
+            const specFilter = document.getElementById('specFilter').value;
+            const nameFilter = document.getElementById('nameSearch').value.toLowerCase();
+
+            let filtered = allDoctors.filter(d => {
+                let specMatch = specFilter ? d.specialty === specFilter : true;
+                let nameMatch = nameFilter ? d.name.toLowerCase().includes(nameFilter) : true;
+                return specMatch && nameMatch;
+            });
+
+            const toShow = filtered.slice(0, visibleCount);
+
+            if (toShow.length === 0) {
+                grid.innerHTML = `<div class="col-span-3 text-center py-8 text-gray">No doctors found matching filters.</div>`;
+                document.getElementById('loadMoreBtn').style.display = 'none';
+                return;
+            }
+
+            toShow.forEach(d => {
+                grid.innerHTML += `
+          <div class="card doc-card" style="padding:0; position:relative;">
+            <div class="doc-imgbox">
+               <img src="${d.image}" alt="${d.name}">
+            </div>
+            <div class="doc-details">
+              <div>
+                <h3 class="font-bold text-lg">${d.name}</h3>
+                <p class="text-primary text-sm font-bold mb-2">${d.specialty} · ${d.clinic}</p>
+                <p class="text-sm text-gray mb-1">⭐ ${d.rating} Rating · ${d.experience}</p>
+                <p class="text-sm text-gray mb-4">Fee: <b>$${d.fee}</b></p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-outline flex-1 justify-center" style="font-size:0.875rem;" onclick="openProfile('${d.id}')">View Profile</button>
+                <a href="book.html" class="btn btn-primary flex-1 justify-center" style="font-size:0.875rem;">Book</a>
+              </div>
+            </div>
+          </div>
+        `;
+            });
+
+            if (filtered.length > visibleCount) {
+                document.getElementById('loadMoreBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('loadMoreBtn').style.display = 'none';
+            }
+        }
+
+        function loadMore() {
+            visibleCount += 3;
+            renderDoctors();
+        }
+
+        function openProfile(id) {
+            const d = allDoctors.find(x => x.id === id);
+            if (!d) return;
+            document.getElementById('mImg').src = d.image;
+            document.getElementById('mName').innerText = d.name;
+            document.getElementById('mSpec').innerText = d.specialty;
+            document.getElementById('mRat').innerText = d.rating;
+            document.getElementById('mExp').innerText = d.experience;
+            document.getElementById('mFee').innerText = d.fee;
+            document.getElementById('mQual').innerText = d.qualifications;
+            document.getElementById('mClinic').innerText = d.clinic;
+            document.getElementById('docModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(e) {
+            if (e.target.id === 'docModal') {
+                document.getElementById('docModal').classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchDoctors);
+    </script>
+</body>
+
+</html>

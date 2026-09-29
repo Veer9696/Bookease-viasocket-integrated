@@ -1,93 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Automate your clinic - BookEase</title>
+    <title>Integrations - BookEase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .hero-integrations {
+            background: linear-gradient(135deg, #1e40af 0%, #1a56db 100%);
+            color: white;
+            padding: 4rem 5%;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .event-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .event-btn {
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .event-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .event-btn:hover:not(.active) {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        #viasocket-embed {
+            width: 100%;
+            height: 750px;
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+            background: white;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: var(--primary);
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+    </style>
 </head>
+
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <a href="index.html">BookEase</a>
+
+    <header class="hero-integrations">
+        <h1 style="font-size: 3rem; margin-top:2rem;">Automate your clinic</h1>
+        <p style="font-size: 1.25rem; opacity:0.9; max-width:600px; margin: 1rem auto 0 auto;">Connect BookEase with
+            your favorite tools. Streamline your workflow and save time instantly.</p>
+    </header>
+
+    <div class="container" style="padding-top:0;">
+
+        <div class="text-center mb-6">
+            <h2 class="font-bold text-lg" style="font-size: 2rem;">Automation Workflows</h2>
+            <p class="text-gray mt-2">Select the BookEase event you want to build an automation for. Selecting an event
+                will update the data available in the workflow builder below.</p>
         </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-            <li><a href="book.html">Book Appointment</a></li>
-            <li><a href="integrations.html">Integrations</a></li>
-        </ul>
-    </nav>
 
-    <main>
-        <section class="page-header">
-            <h1>Automate your clinic</h1>
-            <p>Connect BookEase with your favorite tools to streamline your workflow and save time.</p>
-        </section>
+        <!-- Event Triggers Selector -->
+        <div class="event-selector">
+            <button class="event-btn active" onclick="switchEvent('booking', this)">Appointment Created</button>
+            <button class="event-btn" onclick="switchEvent('symptom', this)">Symptom Progress Updated</button>
+            <button class="event-btn" onclick="switchEvent('report_created', this)">Medical Report Created</button>
+            <button class="event-btn" onclick="switchEvent('report_sent', this)">Medical Report Sent</button>
+        </div>
 
-        <section class="integrations-wrapper">
-            <div id="integrations" style="height:700px"></div>
-        </section>
-    </main>
+        <!-- viaSocket Embed UI -->
+        <div id="viasocket-embed">
+            <div id="loadingOverlay" class="loading-overlay">Loading Automation Platform...</div>
+        </div>
+    </div>
 
-    <footer>
-        <p>&copy; 2026 BookEase. All rights reserved.</p>
-    </footer>
-
+    <script src="script.js"></script>
     <script src="https://embed.viasocket.com/prod-embedcomponent.js"></script>
     <script>
-        async function loadViaSocket() {
-            try {
-                const response = await fetch("/api/viasocket/token");
-                if (!response.ok) throw new Error("Failed to fetch embed token");
-                const embedToken = await response.text();
-                
-                const embed = viaSocket.mount({
-                    embedToken,
-                    parent: "#integrations",
-                    config: {
-                        pageheading: "Automation",
-                        pagesubheading: "Connect BookEase to the apps your clinic already uses",
-                        showTemplates: true,
-                        themeJson: { "--primary-color": "#0056b3" }
-                    },
-                    open: {
-                        dummy_payload: {
-                            name: "Priya Sharma",
-                            phone: "+919876543210",
-                            email: "priya@example.com",
-                            doctor: "Dr. Mehta",
-                            date: "2026-10-05",
-                            time: "10:30",
-                            notes: "First visit"
-                        }
-                    }
-                });
+        let currentEmbed = null;
+        let baseEmbedToken = "";
 
-                embed.on("flow", async (flow) => {
-                    if (!flow?.id) return;
-                    
-                    try {
-                        await fetch('/api/flows', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: flow.action,
-                                id: flow.id,
-                                title: flow.title,
-                                webhookurl: flow.webhookurl,
-                                payload: flow.payload
-                            })
-                        });
-                    } catch (err) {
-                        console.error('Error saving flow to server:', err);
-                    }
-                });
+        const payloads = {
+            'booking': {
+                event: "appointment.created",
+                event_id: "appointment.created:BK-12345",
+                booking: {
+                    booking_id: "BK-12345",
+                    status: "confirmed",
+                    patient: { name: "John Doe", email: "john@example.com", phone: "+91XXXXXXXXXX" },
+                    doctor: { name: "Dr. James Wilson", specialty: "Neurology" },
+                    appointment: { date: "2026-09-30", time: "04:00 PM", type: "Emergency" },
+                    payment: { mode: "Pay Now Online", total_fee: 120 }
+                }
+            },
+            'symptom': {
+                event: "symptom.progress.updated",
+                event_id: "symptom.progress.updated:SYM-123",
+                patient: { id: "PAT-123", name: "John Doe" },
+                symptom: {
+                    id: "SYM-123",
+                    name: "Headache",
+                    description: "Pain around forehead",
+                    severity: "4/10",
+                    status: "improving",
+                    progress: "Pain has reduced after medication",
+                    updated_at: "2026-09-29T10:30:00Z"
+                },
+                appointment: { id: "APT-123", booking_id: "BK-12345" }
+            },
+            'report_created': {
+                event: "medical.report.created",
+                event_id: "medical.report.created:REP-123",
+                report: { id: "REP-123", status: "completed" },
+                patient: { id: "PAT-123", name: "John Doe", email: "john@example.com" },
+                doctor: { id: "DOC-123", name: "Dr. James Wilson", specialty: "Neurology" },
+                appointment: { id: "APT-123", booking_id: "BK-12345", date: "2026-09-30" },
+                result: {
+                    diagnosis: "Migraine",
+                    observations: "Patient reports frequent headaches...",
+                    recommendations: "Rest in dark room",
+                    follow_up: "2 weeks"
+                },
+                created_at: "2026-09-30T10:30:00Z"
+            },
+            'report_sent': {
+                event: "medical.report.sent",
+                event_id: "medical.report.sent:REP-123",
+                report: { id: "REP-123", status: "sent" },
+                patient: { id: "PAT-123", name: "John Doe", email: "john@example.com" },
+                doctor: { id: "DOC-123", name: "Dr. James Wilson" },
+                appointment: { id: "APT-123", booking_id: "BK-12345" }
+            }
+        };
+
+        async function loadViaSocketEmbed() {
+            try {
+                const loading = document.getElementById('loadingOverlay');
+                const response = await fetch('/api/viasocket/token');
+                if (!response.ok) throw new Error('Embed token fetch failed.');
+
+                baseEmbedToken = await response.text();
+                mountWidget(payloads['booking']); // start with booking
+
+                // hide loading when done
+                loading.style.opacity = '0';
+                setTimeout(() => loading.style.display = 'none', 300);
+
             } catch (err) {
-                console.error("Error loading viaSocket:", err);
+                console.error("viaSocket loading error: ", err);
             }
         }
-        
-        document.addEventListener('DOMContentLoaded', loadViaSocket);
+
+        function mountWidget(dummyPayload) {
+            if (currentEmbed) {
+                // Update the existing widget using embed.update / re-init 
+                // the safest way is to destroy and remount since dummy_payload applies on open
+                document.getElementById('viasocket-embed').innerHTML = '';
+            }
+
+            currentEmbed = viaSocket.mount({
+                embedToken: baseEmbedToken,
+                parent: '#viasocket-embed',
+                config: {
+                    pageheading: 'BookEase Automation',
+                    pagesubheading: 'Connect other apps to BookEase seamlessly',
+                    showTemplates: true,
+                    serviceId: "webhook",
+                    serviceType: "trigger",
+                    themeJson: { "--primary-color": "#1a56db" }
+                },
+                open: {
+                    dummy_payload: dummyPayload,
+                    meta: dummyPayload.event
+                }
+            });
+
+            currentEmbed.on("flow", async (flow) => {
+                if (!flow?.id) return;
+                try {
+                    await fetch('/api/flows', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: flow.action,
+                            id: flow.id,
+                            title: flow.title,
+                            webhookurl: flow.webhookurl,
+                            payload: flow.payload,
+                            eventName: flow.metadata // Store the event name via metadata
+                        })
+                    });
+                    showToast(`Workflow saved: ${flow.title}`, 'success');
+                } catch (err) { }
+            });
+        }
+
+        function switchEvent(type, btnElement) {
+            document.querySelectorAll('.event-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            mountWidget(payloads[type]);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadViaSocketEmbed);
     </script>
 </body>
+
 </html>

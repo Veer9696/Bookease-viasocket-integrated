@@ -1,48 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BookEase - Smart Appointment Booking</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookEase - Medical Appointments & Details</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .hero {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      padding: 6rem 5%;
+      text-align: center;
+      position: relative;
+    }
+    .hero h1 { font-size: 3rem; color: var(--primary-dark); margin-bottom: 1rem; }
+    .hero p { font-size: 1.25rem; color: var(--text-gray); margin-bottom: 2rem; max-width: 600px; margin-inline: auto; }
+    
+    .stats-bar {
+      display: flex;
+      justify-content: space-around;
+      background: var(--white);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-md);
+      max-width: 1000px;
+      margin: -3rem auto 3rem auto;
+      position: relative;
+      z-index: 10;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    .stat-label { color: var(--text-gray); font-size: 0.875rem; }
+
+    .speciality-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    .speciality-card {
+      text-align: center;
+      padding: 1.5rem 1rem;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .speciality-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border: 1px solid var(--primary-light); }
+    .speciality-icon { font-size: 2.5rem; margin-bottom: 0.5rem; display: block; }
+    
+    .flow-steps {
+      display: flex;
+      justify-content: space-between;
+      gap: 2rem;
+      position: relative;
+    }
+    .step { text-align: center; flex: 1; position: relative; }
+    .step-icon { 
+      width: 60px; height: 60px; border-radius: 50%; background: var(--primary-light); 
+      color: var(--primary); display: flex; align-items: center; justify-content: center; 
+      font-size: 1.5rem; margin: 0 auto 1rem auto; font-weight: bold;
+    }
+    @media(min-width: 768px){
+      .step:not(:last-child)::after {
+        content: ''; position: absolute; top: 30px; left: 60%; width: 80%; height: 2px;
+        background: dotted 2px var(--border); z-index: -1;
+      }
+    }
+    
+    .cta-banner {
+      background: var(--primary); color: white; padding: 4rem 5%; text-align: center; border-radius: 1rem; margin: 4rem 0;
+    }
+
+    footer { background: var(--text-dark); color: white; padding: 3rem 5%; text-align: center; }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <a href="index.html">BookEase</a>
+
+  <header class="hero">
+    <h1>Your Health, Simplified.</h1>
+    <p>Book doctor appointments, order lab tests, and track your health reports all from one seamless platform.</p>
+    <div class="flex justify-center gap-4">
+      <a href="book.html" class="btn btn-primary">Book Now</a>
+      <a href="tests.html" class="btn btn-outline">View Lab Tests</a>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-value">10,000+</div><div class="stat-label">Patients</div></div>
+    <div class="stat-item"><div class="stat-value">200+</div><div class="stat-label">Doctors</div></div>
+    <div class="stat-item"><div class="stat-value">50+</div><div class="stat-label">Lab Tests</div></div>
+    <div class="stat-item"><div class="stat-value">24/7</div><div class="stat-label">Support</div></div>
+  </div>
+
+  <section class="container">
+    <h2 class="text-center font-bold text-lg mb-4" style="font-size: 2rem;">Why Choose BookEase?</h2>
+    <div class="grid grid-3">
+      <div class="card text-center">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🩺</div>
+        <h3 class="font-bold mb-2">Top Specialists</h3>
+        <p class="text-gray text-sm">Consult with verified and experienced doctors across various medical fields.</p>
+      </div>
+      <div class="card text-center">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🔬</div>
+        <h3 class="font-bold mb-2">Home Lab Tests</h3>
+        <p class="text-gray text-sm">Book lab tests easily and get samples collected right from your doorstep.</p>
+      </div>
+      <div class="card text-center">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+        <h3 class="font-bold mb-2">Smart Reports</h3>
+        <p class="text-gray text-sm">Analyze your lab reports digitally with our AI-powered results analyzer.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container" style="background: var(--bg-light); border-radius: 1rem;">
+    <h2 class="text-center font-bold text-lg mb-4" style="font-size: 2rem;">How It Works</h2>
+    <div class="flow-steps">
+      <div class="step">
+        <div class="step-icon">1</div>
+        <h4 class="font-bold">Find a Doctor</h4>
+        <p class="text-sm text-gray mt-1">Search by specialty or location.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">2</div>
+        <h4 class="font-bold">Book Slot</h4>
+        <p class="text-sm text-gray mt-1">Pick a time that works for you.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">3</div>
+        <h4 class="font-bold">Get Care</h4>
+        <p class="text-sm text-gray mt-1">Visit your doctor & track health.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="container">
+    <h2 class="text-center font-bold text-lg mb-4" style="font-size: 2rem;">Quick Access Specialties</h2>
+    <div class="speciality-grid">
+      <div class="speciality-card"><span class="speciality-icon">🩺</span>General</div>
+      <div class="speciality-card"><span class="speciality-icon">❤️</span>Cardiology</div>
+      <div class="speciality-card"><span class="speciality-icon">🧴</span>Dermatology</div>
+      <div class="speciality-card"><span class="speciality-icon">🦴</span>Orthopedics</div>
+      <div class="speciality-card"><span class="speciality-icon">🧠</span>Neurology</div>
+      <div class="speciality-card"><span class="speciality-icon">👶</span>Pediatrics</div>
+      <div class="speciality-card"><span class="speciality-icon">🤰</span>Gynecology</div>
+      <div class="speciality-card"><span class="speciality-icon">👁️</span>Ophthalmology</div>
+    </div>
+  </section>
+
+  <section class="container">
+    <h2 class="text-center font-bold text-lg mb-4" style="font-size: 2rem;">What Our Patients Say</h2>
+    <div class="grid grid-3">
+      <div class="card">
+        <p class="text-gray mb-4">"BookEase made finding a specialist so easy. The appointment booking was seamless."</p>
+        <div class="flex items-center gap-4">
+          <img src="https://i.pravatar.cc/150?img=47" alt="User" style="width: 40px; border-radius: 50%;">
+          <div>
+            <h5 class="font-bold">Emily R.</h5>
+            <div style="color: var(--warning); font-size: 0.8rem;">★★★★★</div>
+          </div>
         </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-            <li><a href="book.html">Book Appointment</a></li>
-            <li><a href="integrations.html">Integrations</a></li>
-        </ul>
-    </nav>
+      </div>
+      <div class="card">
+        <p class="text-gray mb-4">"I love the AI lab reports page. It highlights what I need to focus on clearly."</p>
+        <div class="flex items-center gap-4">
+          <img src="https://i.pravatar.cc/150?img=33" alt="User" style="width: 40px; border-radius: 50%;">
+          <div>
+            <h5 class="font-bold">Mark T.</h5>
+            <div style="color: var(--warning); font-size: 0.8rem;">★★★★★</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <p class="text-gray mb-4">"The home collection for tests was on time. Highly recommended for busy folks!"</p>
+        <div class="flex items-center gap-4">
+          <img src="https://i.pravatar.cc/150?img=12" alt="User" style="width: 40px; border-radius: 50%;">
+          <div>
+            <h5 class="font-bold">Sarah W.</h5>
+            <div style="color: var(--warning); font-size: 0.8rem;">★★★★★</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <main>
-        <section class="hero">
-            <h1>Smart appointment booking for modern clinics</h1>
-            <p>Streamline your scheduling and provide a seamless experience for your patients.</p>
-            <a href="book.html" class="btn">Book Now</a>
-        </section>
+  <div class="container">
+    <div class="cta-banner">
+      <h2 style="font-size: 2.5rem; margin-bottom: 1rem;">Ready to take control of your health?</h2>
+      <p style="margin-bottom: 2rem; font-size: 1.1rem; opacity: 0.9;">Join thousands of patients who trust BookEase for their medical needs.</p>
+      <a href="book.html" class="btn btn-accent" style="font-size: 1.1rem; padding: 0.75rem 2rem;">Get Started Today</a>
+    </div>
+  </div>
 
-        <section class="features">
-            <div class="feature-card">
-                <h3>Easy Scheduling</h3>
-                <p>Book appointments in seconds with our intuitive interface. Available 24/7 for your patients.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Expert Doctors</h3>
-                <p>Choose from our wide network of specialized and experienced healthcare professionals.</p>
-            </div>
-            <div class="feature-card">
-                <h3>Seamless Experience</h3>
-                <p>Automated reminders and easy rescheduling ensure patients never miss an appointment.</p>
-            </div>
-        </section>
-    </main>
+  <footer>
+    <div class="container flex justify-between items-center flex-wrap gap-4" style="padding: 0;">
+      <div>
+        <h3 class="font-bold text-lg mb-2">BookEase</h3>
+        <p class="text-sm text-gray" style="color: #ccc;">Modern healthcare at your fingertips.</p>
+      </div>
+      <div class="flex gap-4">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Contact</a>
+      </div>
+    </div>
+    <p class="text-sm mt-4" style="color: #888;">© 2026 BookEase. All rights reserved.</p>
+  </footer>
 
-    <footer>
-        <p>&copy; 2026 BookEase. All rights reserved.</p>
-    </footer>
+  <script src="script.js"></script>
 </body>
 </html>

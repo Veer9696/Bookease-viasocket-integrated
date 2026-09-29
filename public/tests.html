@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Lab Tests - BookEase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .layout {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .filter-chips {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+        .chip {
+            padding: 0.5rem 1rem;
+            background: var(--bg-light);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .chip:hover,
+        .chip.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .test-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            border: 1px solid var(--border);
+        }
+
+        .price-strike {
+            text-decoration: line-through;
+            color: var(--text-light);
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+
+        .price-final {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--text-dark);
+        }
+
+        .cart-sidebar {
+            position: sticky;
+            top: 100px;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cart-remove {
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .time-bubble {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .time-bubble.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        @media(max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container mt-4">
+        <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
+            <h1 class="font-bold text-lg" style="font-size: 2rem;">Book Lab Tests</h1>
+            <input type="text" class="form-control" style="max-width: 300px;" placeholder="Search tests...">
+        </div>
+
+        <div class="filter-chips">
+            <div class="chip active">All</div>
+            <div class="chip">Blood</div>
+            <div class="chip">Urine</div>
+            <div class="chip">Cardiology</div>
+            <div class="chip">Thyroid</div>
+            <div class="chip">Diabetes</div>
+        </div>
+
+        <div class="layout">
+            <!-- Main Content -->
+            <div>
+                <h2 class="font-bold mb-4">Individual Tests</h2>
+                <div class="grid grid-3" id="testsGrid">
+                    <!-- Dynamically populated via JS -->
+                </div>
+
+                <h2 class="font-bold mb-4 mt-4" style="margin-top: 4rem;">Popular Packages</h2>
+                <div class="grid grid-2">
+                    <div class="card test-card" style="border: 2px solid var(--success);">
+                        <div class="badge badge-success mb-2" style="align-self: flex-start;">Save 40%</div>
+                        <h3 class="font-bold">Full Body Checkup</h3>
+                        <p class="text-sm text-gray mt-1 mb-2">Includes 64 tests (CBC, LFT, KFT, Thyroid, Lipid...)</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div>
+                                <span class="price-strike">$250</span><span class="price-final">$150</span>
+                            </div>
+                            <button class="btn btn-outline" onclick="addToCart('Full Body Checkup', 150)">Add</button>
+                        </div>
+                    </div>
+                    <div class="card test-card">
+                        <div class="badge badge-primary mb-2" style="align-self: flex-start;">Save 25%</div>
+                        <h3 class="font-bold">Heart & Diabetes Panel</h3>
+                        <p class="text-sm text-gray mt-1 mb-2">HbA1c, Fasting Blood Sugar, Lipid Profile, ECG</p>
+                        <div class="mt-4 flex justify-between items-center">
+                            <div>
+                                <span class="price-strike">$120</span><span class="price-final">$90</span>
+                            </div>
+                            <button class="btn btn-outline"
+                                onclick="addToCart('Heart & Diabetes Panel', 90)">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Sidebar -->
+            <div class="cart-sidebar">
+                <div class="card">
+                    <h3 class="font-bold mb-4 flex justify-between">🛒 Cart <span id="cartCount"
+                            class="badge badge-primary">0</span></h3>
+                    <div id="cartItems">
+                        <p class="text-center text-gray text-sm py-4">Your cart is empty.</p>
+                    </div>
+                    <div class="mt-4 pt-4" style="border-top: 2px dashed var(--border);">
+                        <div class="flex justify-between mb-2">
+                            <span class="text-gray">Subtotal</span>
+                            <span class="font-bold" id="cartTotal">$0</span>
+                        </div>
+                    </div>
+
+                    <div id="checkoutArea" style="display: none; margin-top: 2rem;">
+                        <h4 class="font-bold mb-2">Collection Preference</h4>
+                        <div class="time-bubble active" onclick="selectColType(this, 'home')">🏠 Home Collection
+                            (Morning 6-10AM)</div>
+                        <div class="time-bubble" onclick="selectColType(this, 'clinic')">🏥 Walk-in Clinic (Afternoon
+                            12-4PM)</div>
+
+                        <div class="form-group mt-2">
+                            <input type="date" class="form-control" id="colDate" required>
+                        </div>
+                        <div class="form-group" id="addressGroup">
+                            <textarea class="form-control" placeholder="Full Address..." rows="2"></textarea>
+                        </div>
+
+                        <button class="btn btn-primary w-full mt-2" onclick="placeOrder()">Proceed to Book</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const availableTests = [
+            { id: 1, name: 'Complete Blood Count (CBC)', cat: 'Blood', mrp: 30, price: 20, fasting: 'No', tat: '6 hrs' },
+            { id: 2, name: 'Lipid Profile', cat: 'Cardiology', mrp: 45, price: 35, fasting: 'Yes (10-12 hrs)', tat: '12 hrs' },
+            { id: 3, name: 'HbA1c', cat: 'Diabetes', mrp: 25, price: 18, fasting: 'No', tat: '6 hrs' },
+            { id: 4, name: 'Thyroid Profile (T3, T4, TSH)', cat: 'Thyroid', mrp: 50, price: 40, fasting: 'No', tat: '12 hrs' },
+            { id: 5, name: 'Liver Function Test (LFT)', cat: 'Blood', mrp: 40, price: 30, fasting: 'No', tat: '12 hrs' },
+            { id: 6, name: 'Urine Routine', cat: 'Urine', mrp: 15, price: 10, fasting: 'No', tat: '6 hrs' }
+        ];
+
+        let cart = [];
+
+        function renderTests() {
+            const grid = document.getElementById('testsGrid');
+            grid.innerHTML = '';
+            availableTests.forEach(t => {
+                grid.innerHTML += `
+          <div class="card test-card">
+            <div>
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-bold">${t.name}</h3>
+                <span class="badge ${t.cat === 'Blood' ? 'badge-danger' : 'badge-primary'}">${t.cat}</span>
+              </div>
+              <p class="text-sm text-gray">Fasting: <span class="font-bold text-dark">${t.fasting}</span></p>
+              <p class="text-sm text-gray">Report in: ${t.tat}</p>
+            </div>
+            <div class="mt-4 flex justify-between items-center">
+              <div><span class="price-strike">$${t.mrp}</span><span class="price-final">$${t.price}</span></div>
+              <button class="btn btn-outline" onclick="addToCart('${t.name}', ${t.price})">Add</button>
+            </div>
+          </div>
+        `;
+            });
+        }
+
+        function addToCart(name, price) {
+            cart.push({ name, price, id: Date.now() });
+            updateCartUI();
+            showToast(`${name} added to cart!`);
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(item => item.id !== id);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const container = document.getElementById('cartItems');
+            const count = document.getElementById('cartCount');
+            const totalEl = document.getElementById('cartTotal');
+            const checkoutArea = document.getElementById('checkoutArea');
+
+            count.innerText = cart.length;
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray text-sm py-4">Your cart is empty.</p>';
+                totalEl.innerText = '$0';
+                checkoutArea.style.display = 'none';
+                return;
+            }
+
+            let html = '';
+            let total = 0;
+            cart.forEach(item => {
+                total += item.price;
+                html += `
+          <div class="cart-item">
+            <div>
+              <div class="text-sm font-bold">${item.name}</div>
+              <div class="text-sm text-primary">$${item.price}</div>
+            </div>
+            <div class="cart-remove" onclick="removeFromCart(${item.id})">✖ Remove</div>
+          </div>
+        `;
+            });
+            container.innerHTML = html;
+            totalEl.innerText = `$${total}`;
+            checkoutArea.style.display = 'block';
+        }
+
+        function selectColType(el, type) {
+            document.querySelectorAll('.time-bubble').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            const addrGroups = document.getElementById('addressGroup');
+            if (type === 'clinic') {
+                addrGroups.style.display = 'none';
+            } else {
+                addrGroups.style.display = 'block';
+            }
+        }
+
+        function placeOrder() {
+            if (!document.getElementById('colDate').value) return showToast('Please select a preferred date', 'error');
+
+            // Clear Cart
+            cart = [];
+            updateCartUI();
+            showToast('Order Placed Successfully! We will contact you soon.', 'success');
+        }
+
+        document.addEventListener('DOMContentLoaded', renderTests);
+    </script>
+</body>
+
+</html>

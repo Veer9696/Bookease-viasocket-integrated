@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard - BookEase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+            min-height: 80vh;
+            margin-top: 2rem;
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sidebar-menu li {
+            list-style: none;
+        }
+
+        .sidebar-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            color: var(--text-gray);
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .sidebar-menu a:hover {
+            background: var(--bg-light);
+            color: var(--primary);
+        }
+
+        .sidebar-menu a.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .history-card {
+            background: white;
+            border: 1px solid var(--border);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .timeline {
+            border-left: 2px solid var(--border);
+            padding-left: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.4rem;
+            top: 0.2rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo"><a href="index.html">BookEase</a></div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="doctors.html">Find a Doctor</a></li>
+            <li><a href="integrations.html">Integrations</a></li>
+        </ul>
+        <a href="doctor-dashboard.html" class="btn btn-outline" style="border:none;">Doctor View</a>
+    </nav>
+
+    <div class="container pt-4">
+        <div class="flex justify-between items-center mb-4">
+            <h1 style="font-size: 2.5rem; font-weight:700;">Patient Dashboard</h1>
+        </div>
+
+        <div class="dashboard-layout">
+            <!-- Sidebar -->
+            <div class="card h-fit">
+                <div class="flex items-center gap-4 mb-8">
+                    <div
+                        style="width:50px; height:50px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem;">
+                        JD</div>
+                    <div>
+                        <h3 class="font-bold">John Doe</h3>
+                        <p class="text-sm text-gray">Patient</p>
+                    </div>
+                </div>
+
+                <ul class="sidebar-menu">
+                    <li><a onclick="switchTab('tab-appointments')" class="active"
+                            id="link-appointments">Appointments</a></li>
+                    <li><a onclick="switchTab('tab-symptoms')" id="link-symptoms">Symptoms & Progress</a></li>
+                    <li><a onclick="switchTab('tab-reports')" id="link-reports">Medical Reports</a></li>
+                    <li><a href="doctors.html" class="text-primary">✚ New Appointment</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div>
+
+                <!-- Appointments -->
+                <div id="tab-appointments" class="tab-content active">
+                    <h2 class="font-bold text-lg mb-6">Your Appointments</h2>
+                    <div class="card" id="aptList">
+                        <!-- Pulls from LocalStorage later, but hardcoded nicely for demo -->
+                        <div class="flex justify-between items-center pb-4 border-b">
+                            <div>
+                                <h3 class="font-bold">Dr. James Wilson <span
+                                        class="text-sm font-normal text-gray">(Neurology)</span></h3>
+                                <p class="text-sm text-gray mt-1">📅 September 30, 2026 at 04:00 PM</p>
+                                <p class="text-sm text-gray mt-1">📍 Neuro Health Clinic</p>
+                            </div>
+                            <span class="badge badge-success">Upcoming</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Symptoms & Progress -->
+                <div id="tab-symptoms" class="tab-content">
+                    <h2 class="font-bold text-lg mb-2">Track Symptoms</h2>
+                    <p class="text-sm text-gray mb-6">Log how you are feeling before and after your appointments.</p>
+
+                    <div class="grid grid-2" style="align-items:start;">
+                        <div class="card" style="box-shadow:none;">
+                            <form id="symptomForm" onsubmit="saveSymptom(event)">
+                                <div class="form-group mb-4">
+                                    <label class="form-label">Symptom Title</label>
+                                    <input type="text" class="form-control" id="symTitle" placeholder="e.g. Headache"
+                                        required>
+                                </div>
+                                <div class="form-group mb-4">
+                                    <label class="form-label">Description</label>
+                                    <textarea class="form-control" id="symDesc" required
+                                        placeholder="Pain around forehead..."></textarea>
+                                </div>
+                                <div class="grid grid-2">
+                                    <div class="form-group mb-4">
+                                        <label class="form-label">Severity (1-10)</label>
+                                        <input type="number" class="form-control" id="symSev" min="1" max="10" required>
+                                    </div>
+                                    <div class="form-group mb-4">
+                                        <label class="form-label">Current Status</label>
+                                        <select class="form-control" id="symStatus">
+                                            <option>Severe</option>
+                                            <option>Moderate</option>
+                                            <option>Improving</option>
+                                            <option>Resolved</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group mb-4">
+                                    <label class="form-label">Progress Update</label>
+                                    <textarea class="form-control" id="symProg"
+                                        placeholder="How has it changed since yesterday?"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="btnSym">Save Progress</button>
+                                <p class="text-xs text-gray mt-2 text-center" style="opacity:0.7">Trigger:
+                                    symptom.progress.updated</p>
+                            </form>
+                        </div>
+
+                        <div>
+                            <h3 class="font-bold mb-4">History</h3>
+                            <div id="symptomHistory">
+                                <!-- History Appears Here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medical Reports Tab -->
+                <div id="tab-reports" class="tab-content">
+                    <h2 class="font-bold text-lg mb-6">Medical Reports</h2>
+
+                    <div class="history-card">
+                        <div
+                            style="border-bottom: 1px dashed var(--border); padding-bottom: 1rem; margin-bottom: 1rem;">
+                            <h3 class="font-bold text-lg">Cardiology Assessment</h3>
+                            <p class="text-sm text-gray"><b>Dr. Sarah Smith</b> · August 20, 2026</p>
+                        </div>
+                        <div>
+                            <p class="text-sm mb-2"><b>Status:</b> <span class="badge badge-success">Completed</span>
+                            </p>
+                            <button class="btn btn-outline">View Secure Report</button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.sidebar-menu a').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('link-' + tabId.replace('tab-', '')).classList.add('active');
+        }
+
+        async function saveSymptom(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnSym');
+            btn.innerText = "Saving...";
+
+            const payload = {
+                patient: { id: "PAT-001", name: "John Doe" },
+                symptom: {
+                    name: document.getElementById('symTitle').value,
+                    description: document.getElementById('symDesc').value,
+                    severity: document.getElementById('symSev').value + "/10",
+                    status: document.getElementById('symStatus').value,
+                    progress: document.getElementById('symProg').value,
+                },
+                appointmentId: "APT-OPTIONAL"
+            };
+
+            try {
+                const res = await fetch('/api/symptoms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const d = await res.json();
+
+                if (d.automationTriggered) showToast("Saved & Workflow Triggered!", "success");
+                else showToast("Progress saved locally.");
+
+                // Add to UI immediately
+                const historyDiv = document.getElementById('symptomHistory');
+                const hCard = document.createElement('div');
+                hCard.className = "history-card";
+                hCard.innerHTML = `
+               <h4 class="font-bold">${payload.symptom.name}</h4>
+               <p class="text-xs text-gray mb-2">Status: ${payload.symptom.status} · Severity: ${payload.symptom.severity}</p>
+               <p class="text-sm">${payload.symptom.progress}</p>
+            `;
+                historyDiv.insertBefore(hCard, historyDiv.firstChild);
+
+                document.getElementById('symptomForm').reset();
+
+            } catch (err) {
+                showToast("Failed to save symptom", "error");
+            } finally {
+                btn.innerText = "Save Progress";
+            }
+        }
+    </script>
+</body>
+
+</html>
