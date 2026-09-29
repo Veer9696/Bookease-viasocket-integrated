@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automate your clinic - BookEase</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <a href="index.html">BookEase</a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="book.html">Book Appointment</a></li>
+            <li><a href="integrations.html">Integrations</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="page-header">
+            <h1>Automate your clinic</h1>
+            <p>Connect BookEase with your favorite tools to streamline your workflow and save time.</p>
+        </section>
+
+        <section class="integrations-wrapper">
+            <div id="integrations" style="height:700px"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 BookEase. All rights reserved.</p>
+    </footer>
+
+    <script src="https://embed.viasocket.com/prod-embedcomponent.js"></script>
+    <script>
+        async function loadViaSocket() {
+            try {
+                const response = await fetch("/api/viasocket/token");
+                if (!response.ok) throw new Error("Failed to fetch embed token");
+                const embedToken = await response.text();
+                
+                const embed = viaSocket.mount({
+                    embedToken,
+                    parent: "#integrations",
+                    config: {
+                        pageheading: "Automation",
+                        pagesubheading: "Connect BookEase to the apps your clinic already uses",
+                        showTemplates: true,
+                        themeJson: { "--primary-color": "#0056b3" }
+                    },
+                    open: {
+                        dummy_payload: {
+                            name: "Priya Sharma",
+                            phone: "+919876543210",
+                            email: "priya@example.com",
+                            doctor: "Dr. Mehta",
+                            date: "2026-10-05",
+                            time: "10:30",
+                            notes: "First visit"
+                        }
+                    }
+                });
+
+                embed.on("flow", async (flow) => {
+                    if (!flow?.id) return;
+                    
+                    try {
+                        await fetch('/api/flows', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: flow.action,
+                                id: flow.id,
+                                title: flow.title,
+                                webhookurl: flow.webhookurl,
+                                payload: flow.payload
+                            })
+                        });
+                    } catch (err) {
+                        console.error('Error saving flow to server:', err);
+                    }
+                });
+            } catch (err) {
+                console.error("Error loading viaSocket:", err);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', loadViaSocket);
+    </script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment - BookEase</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <a href="index.html">BookEase</a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="book.html">Book Appointment</a></li>
+            <li><a href="integrations.html">Integrations</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="form-container">
+            <h2>Book an Appointment</h2>
+            <form id="bookingForm">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" required placeholder="+1 234 567 8900">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="doctor">Select Doctor</label>
+                    <select id="doctor" name="doctor" required>
+                        <option value="" disabled selected>Choose a doctor...</option>
+                        <option value="dr-smith">Dr. Sarah Smith (Cardiology)</option>
+                        <option value="dr-jones">Dr. David Jones (Pediatrics)</option>
+                        <option value="dr-williams">Dr. Emily Williams (General Practice)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="date">Preferred Date</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div class="form-group">
+                    <label for="time">Preferred Time</label>
+                    <input type="time" id="time" name="time" required>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Additional Notes</label>
+                    <textarea id="notes" name="notes" placeholder="Any specific symptoms or questions?"></textarea>
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Confirm Booking</button>
+                <div id="successMessage" class="success-message">
+                    Your appointment request has been successfully submitted! We will contact you shortly.
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 BookEase. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
