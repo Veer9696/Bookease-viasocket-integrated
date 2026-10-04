@@ -41,7 +41,12 @@ app.get('/api/viasocket/token', (req, res) => {
 });
 
 // Manage Workflows
-const flowsFilePath = path.join(__dirname, 'flows.json');
+// On Embarko, DATA_DIR persists across redeploys; seed it from the bundled flows.json
+const flowsFilePath = path.join(process.env.DATA_DIR || __dirname, 'flows.json');
+const bundledFlowsPath = path.join(__dirname, 'flows.json');
+if (flowsFilePath !== bundledFlowsPath && !fs.existsSync(flowsFilePath) && fs.existsSync(bundledFlowsPath)) {
+    fs.copyFileSync(bundledFlowsPath, flowsFilePath);
+}
 app.post('/api/flows', (req, res) => {
     const { action, id, title, webhookurl, payload, eventName } = req.body;
     if (!id) return res.status(400).send("Missing flow id");

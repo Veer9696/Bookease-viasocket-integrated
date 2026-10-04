@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: bookease
+    runtime: node
+    plan: starter
+    rootDir: .
+    buildCommand: >
+      cd server && npm install && npx prisma generate &&
+      cd ../client && npm install && npm run build
+    startCommand: >
+      cd server && npx prisma db push --accept-data-loss=false && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # MongoDB Atlas connection string — set manually in the Render dashboard.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: VIASOCKET_ORG_ID
+        sync: false
+      - key: VIASOCKET_PROJECT_ID
+        sync: false
+      - key: VIASOCKET_EMBED_SECRET
+        sync: false

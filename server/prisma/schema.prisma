@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mongodb"
+  url          = env("DATABASE_URL")
+  // MongoDB has no native foreign-key constraints, so Prisma emulates
+  // referential actions (onDelete: Cascade, etc.) in the client instead.
+  relationMode = "prisma"
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REJECTED
+  COMPLETED
+}
+
+enum CancelledBy {
+  PATIENT
+  DOCTOR
+}
+
+enum LabBookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum NotificationCategory {
+  APPOINTMENT
+  LAB
+  REMINDER
+  SYSTEM
+}
+
+enum FlowStatus {
+  ACTIVE
+  PAUSED
+}
+
+model User {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  passwordHash String
+  role         Role
+  name         String
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  doctorProfile DoctorProfile?
+  appointments  Appointment[]   @relation("PatientAppointments")
+  labBookings   LabBooking[]
+  notifications Notification[]
+}
+
+model DoctorProfile {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @unique @db.ObjectId
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialty      String
+  experience     String?
+  qualifications String?
+  clinic         String?
+  fee            Int      @default(0)
+  bio            String?
+  image          String?
+  rating         Float    @default(0)
+
+  availability Availability[]
+  timeOff      TimeOff[]
+  appointments Appointment[]   @relation("DoctorAppointments")
+
+  @@index([specialty])
+}
+
+model Availability {
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  doctorId         String        @db.ObjectId
+  doctor           DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  dayOfWeek        Int // 0 = Sunday .. 6 = Saturday
+  startTime        String // "09:00"
+  endTime          String // "17:00"
+  slotDurationMins Int           @default(30)
+
+  @@index([doctorId])
+}
+
+model TimeOff {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  doctorId  String        @db.ObjectId
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  date      DateTime
+  startTime String?
+  endTime   String?
+  reason    String?
+
+  @@index([doctorId, date])
+}
+
+model Appointment {
+  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
+  patientId          String            @db.ObjectId
+  patient            User              @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId           String            @db.ObjectId
+  doctor             DoctorProfile     @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Cascade)
+  scheduledAt        DateTime
+  type               String            @default("in-person")
+  status             AppointmentStatus @default(PENDING)
+  notes              String?
+  cancelledBy        CancelledBy?
+  cancellationReason String?
+  remindedAt24h      DateTime?
+  remindedAt1h       DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  // Baseline conflict guard (blocks a slot forever, even after cancellation).
+  // Replaced by hand with a partial unique index scoped to active statuses —
+  // see prisma/manual_partial_unique_index.md before going live.
+  @@unique([doctorId, scheduledAt], name: "doctor_slot_unique")
+  @@index([patientId])
+}
+
+model LabTest {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  price       Int
+  createdAt   DateTime @default(now())
+
+  items LabBookingItem[]
+}
+
+model LabBooking {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  patientId   String           @db.ObjectId
+  patient     User             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  status      LabBookingStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  items LabBookingItem[]
+
+  @@index([patientId])
+}
+
+model LabBookingItem {
+  id             String     @id @default(auto()) @map("_id") @db.ObjectId
+  labBookingId   String     @db.ObjectId
+  labBooking     LabBooking @relation(fields: [labBookingId], references: [id], onDelete: Cascade)
+  labTestId      String     @db.ObjectId
+  labTest        LabTest    @relation(fields: [labTestId], references: [id])
+  priceAtBooking Int
+
+  @@index([labBookingId])
+  @@index([labTestId])
+}
+
+model Notification {
+  id                String               @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String               @db.ObjectId
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category          NotificationCategory
+  type              String
+  title             String
+  body              String
+  readAt            DateTime?
+  relatedEntityType String?
+  relatedEntityId   String?
+  createdAt         DateTime             @default(now())
+
+  @@index([userId, readAt])
+}
+
+// Keeps viaSocket's own flow id as the primary key (not an ObjectId) so the
+// embed's flow.id maps directly to _id with no translation layer.
+model ViaSocketFlow {
+  id         String     @id @map("_id")
+  title      String?
+  webhookUrl String
+  payload    Json?
+  eventName  String?
+  status     FlowStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([eventName, status])
+}
