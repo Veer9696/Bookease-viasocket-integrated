@@ -1,6 +1,7 @@
 const { prisma } = require("../config/prismaClient");
 const notificationService = require("./notification.service");
 const viaSocketService = require("./viaSocket.service");
+const { buildAppointmentEvent } = require("./appointmentEvents");
 const { logger } = require("../utils/logger");
 
 async function sendDueReminders() {
@@ -43,13 +44,11 @@ async function sendWindowReminders({ windowHoursFrom, windowHoursTo, field, labe
       relatedEntityId: appointment.id,
     });
 
-    await viaSocketService.sendEvent("appointment.reminder", {
-      event: "appointment.reminder",
-      appointment: { id: appointment.id, scheduledAt: appointment.scheduledAt },
-      patient: { name: appointment.patient.name, email: appointment.patient.email },
-      doctor: { name: appointment.doctor.user.name },
-      window: label,
-    });
+    await viaSocketService.sendEvent(
+      "appointment.reminder",
+      await buildAppointmentEvent("appointment.reminder", appointment.id, { window: label }),
+      { ownerUserIds: [appointment.doctor.userId, appointment.patientId] }
+    );
 
     await prisma.appointment.update({
       where: { id: appointment.id },

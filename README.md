@@ -27,7 +27,7 @@ cd server
 cp .env.example .env         # fill in DATABASE_URL (Atlas connection string), JWT_SECRET, viaSocket creds
 npm install
 npx prisma db push           # syncs the schema to your Atlas database (Mongo has no migration history)
-node prisma/seed.js          # seeds demo doctors, lab tests, migrates flows.json
+node prisma/seed.js          # double-booking index + demo doctors, lab tests, migrates flows.json
 npm run dev                  # http://localhost:3000
 
 # 2. Client (separate terminal)
@@ -39,16 +39,19 @@ npm run dev                  # http://localhost:5173, proxies /api to :3000
 Demo doctor logins are printed by the seed script (password `Demo12345!`). Register a patient
 account from the app itself.
 
-After the first `db push`, apply the hand-written partial unique index described in
-`server/prisma/manual_partial_unique_index.md` (prevents double-booking while still allowing a
-cancelled slot to be rebooked — MongoDB can't express a conditional unique index in the Prisma
-schema itself).
+**No Atlas account yet?** Run `node scripts/dev-db.js` in a separate terminal (from `server/`) —
+it starts a local MongoDB with no install needed, on port 27117, saving data in `server/.dev-db`
+so it survives restarts. Use `DATABASE_URL=mongodb://127.0.0.1:27117/bookease?replicaSet=rs0`.
+It's for local testing only; swap in your Atlas URL for anything real.
+
+Double-booking protection is a MongoDB partial unique index that Prisma's schema can't declare;
+`prisma/ensure-indexes.js` creates it (run by `seed.js`, and on every Render deploy).
 
 ## Production build
 
 ```bash
 cd client && npm run build   # outputs client/dist
-cd server && npx prisma db push && npm start
+cd server && npx prisma db push && node prisma/ensure-indexes.js && npm start
 ```
 
 Express serves the built SPA directly — one process, no separate frontend host needed.

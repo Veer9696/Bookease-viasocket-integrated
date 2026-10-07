@@ -28,6 +28,7 @@ async function register({ email, password, name, phone, role, specialty }) {
 async function login({ email, password }) {
   const user = await prisma.user.findUnique({ where: { email }, include: { doctorProfile: true } });
   if (!user) throw new UnauthorizedError("Invalid email or password");
+  if (!user.passwordHash) throw new UnauthorizedError("This account uses Google sign-in. Continue with Google instead.");
 
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) throw new UnauthorizedError("Invalid email or password");

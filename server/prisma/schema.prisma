@@ -44,6 +44,7 @@ enum NotificationCategory {
 }
 
 enum FlowStatus {
+  DRAFT
   ACTIVE
   PAUSED
 }
@@ -51,17 +52,43 @@ enum FlowStatus {
 model User {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   email        String   @unique
-  passwordHash String
+  // Null for accounts created through Google sign-in.
+  passwordHash String?
+  // Google's stable account id ("sub"). Unique only where set — a plain
+  // @unique would collide on every user without one, so prisma/ensure-indexes.js
+  // creates it as a partial unique index instead.
+  googleId     String?
+  avatarUrl    String?
   role         Role
   name         String
   phone        String?
+  dob          DateTime?
+  gender       String?
+  bloodGroup   String?
+  emergencyContact String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   doctorProfile DoctorProfile?
+  savedAddresses SavedAddress[]
   appointments  Appointment[]   @relation("PatientAppointments")
   labBookings   LabBooking[]
   notifications Notification[]
+}
+
+model SavedAddress {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  street    String
+  city      String
+  state     String?
+  pincode   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model DoctorProfile {
@@ -76,6 +103,11 @@ model DoctorProfile {
   bio            String?
   image          String?
   rating         Float    @default(0)
+  locationUrl    String?
+  bufferMins     Int      @default(0)
+  licenseNumber  String?
+  clinicAddress  String?
+  gender         String?
 
   availability Availability[]
   timeOff      TimeOff[]
@@ -109,26 +141,34 @@ model TimeOff {
 }
 
 model Appointment {
-  id                 String            @id @default(auto()) @map("_id") @db.ObjectId
-  patientId          String            @db.ObjectId
-  patient            User              @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
-  doctorId           String            @db.ObjectId
-  doctor             DoctorProfile     @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Cascade)
-  scheduledAt        DateTime
-  type               String            @default("in-person")
-  status             AppointmentStatus @default(PENDING)
-  notes              String?
-  cancelledBy        CancelledBy?
-  cancellationReason String?
-  remindedAt24h      DateTime?
-  remindedAt1h       DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                  String            @id @default(auto()) @map("_id") @db.ObjectId
+  patientId           String            @db.ObjectId
+  patient             User              @relation("PatientAppointments", fields: [patientId], references: [id], onDelete: Cascade)
+  doctorId            String            @db.ObjectId
+  doctor              DoctorProfile     @relation("DoctorAppointments", fields: [doctorId], references: [id], onDelete: Cascade)
+  scheduledAt         DateTime
+  type                String            @default("in-person")
+  feeAtBooking        Int?
+  status              AppointmentStatus @default(PENDING)
+  notes               String?
+  cancelledBy         CancelledBy?
+  cancellationReason  String?
+  remindedAt24h       DateTime?
+  remindedAt1h        DateTime?
+  prescriptionNotes   String?
+  diagnosisNotes      String?
+  reportUrls          String[]          @default([])
+  paymentStatus       String            @default("PAY_AT_CLINIC")
+  paymentMethod       String?
+  rescheduledCount    Int               @default(0)
+  originalScheduledAt DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
-  // Baseline conflict guard (blocks a slot forever, even after cancellation).
-  // Replaced by hand with a partial unique index scoped to active statuses —
-  // see prisma/manual_partial_unique_index.md before going live.
-  @@unique([doctorId, scheduledAt], name: "doctor_slot_unique")
+  // Double-booking is prevented by a *partial* unique index (only PENDING /
+  // CONFIRMED appointments hold a slot, so cancelled slots can be rebooked).
+  // Prisma's schema can't express partial indexes; prisma/seed.js creates it.
+  @@index([doctorId, scheduledAt])
   @@index([patientId])
 }
 
@@ -143,14 +183,19 @@ model LabTest {
 }
 
 model LabBooking {
-  id          String           @id @default(auto()) @map("_id") @db.ObjectId
-  patientId   String           @db.ObjectId
-  patient     User             @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  scheduledAt DateTime
-  status      LabBookingStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  patientId     String           @db.ObjectId
+  patient       User             @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  scheduledAt   DateTime
+  status        LabBookingStatus @default(PENDING)
+  notes         String?
+  addressId     String?          @db.ObjectId
+  address       String?
+  paymentStatus String           @default("PAY_ON_COLLECTION")
+  totalAmount   Int?
+  reportUrls    String[]         @default([])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   items LabBookingItem[]
 
@@ -187,15 +232,22 @@ model Notification {
 
 // Keeps viaSocket's own flow id as the primary key (not an ObjectId) so the
 // embed's flow.id maps directly to _id with no translation layer.
+// ownerUserId null = clinic-wide flow (e.g. migrated from the old flows.json),
+// which receives every event; otherwise only that user's own events.
 model ViaSocketFlow {
-  id         String     @id @map("_id")
-  title      String?
-  webhookUrl String
-  payload    Json?
-  eventName  String?
-  status     FlowStatus @default(ACTIVE)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id           String     @id @map("_id")
+  ownerUserId  String?    @db.ObjectId
+  title        String?
+  description  String?
+  webhookUrl   String?
+  payload      Json?
+  eventName    String?
+  appKey       String?
+  serviceIcons String[]   @default([])
+  status       FlowStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([eventName, status])
+  @@index([ownerUserId])
 }

@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { doctorsApi } from "../services/doctorsApi";
 
-export function useDoctors(specialty) {
+export function useDoctors(filters) {
   return useQuery({
-    queryKey: ["doctors", specialty || "all"],
-    queryFn: () => doctorsApi.list(specialty),
+    queryKey: ["doctors", typeof filters === "object" ? filters : { specialty: filters || "all" }],
+    queryFn: () => doctorsApi.list(filters),
   });
 }
 

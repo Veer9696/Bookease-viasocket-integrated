@@ -1,19 +1,43 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ApiClientError } from "../services/apiClient";
 import FormField, { inputClass } from "../components/common/FormField";
+import PasswordInput from "../components/common/PasswordInput";
 import ErrorBanner from "../components/common/ErrorBanner";
 import Button from "../components/common/Button";
+import GoogleButton, { OrDivider } from "../components/common/GoogleButton";
+
+const OAUTH_ERRORS = {
+  cancelled: "Google sign-up was cancelled.",
+  expired: "Your Google sign-up session expired. Please try again.",
+  conflict: "This email is already registered with a different login method or Google account.",
+  failed: "We couldn't sign you up with Google. Please try again.",
+  not_configured: "Google sign-in isn't available right now.",
+};
 
 const initialForm = { name: "", email: "", password: "", phone: "", role: "PATIENT", specialty: "" };
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { user, register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const oauthErr = searchParams.get("oauthError");
   const [form, setForm] = useState(initialForm);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(() => (oauthErr ? OAUTH_ERRORS[oauthErr] || "Google sign-up failed." : null));
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      navigate(user.role === "DOCTOR" ? "/doctor/dashboard" : "/dashboard", { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (oauthErr) {
+      setError(OAUTH_ERRORS[oauthErr] || "Google sign-up failed.");
+    }
+  }, [oauthErr]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -32,7 +56,12 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto max-w-sm px-4 py-16">
       <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+      <div className="mt-6">
+        <GoogleButton from="register">Sign up with Google</GoogleButton>
+        <p className="mt-2 text-center text-xs text-gray-500">You'll choose Patient or Doctor next.</p>
+      </div>
+      <OrDivider />
+      <form onSubmit={handleSubmit} className="space-y-4">
         <ErrorBanner message={error} />
 
         <FormField label="I am a">
@@ -58,12 +87,14 @@ export default function RegisterPage() {
             onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </FormField>
 
-        <FormField label="Phone (optional)">
-          <input className={inputClass} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        <FormField label="Phone (for appointment updates)">
+          <input type="tel" required placeholder="+91 98765 43210" pattern="\+?[\d\s()\-]{7,20}"
+            title="Enter a valid phone number" className={inputClass} value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </FormField>
 
         <FormField label="Password">
-          <input type="password" required minLength={8} className={inputClass} value={form.password}
+          <PasswordInput required minLength={8} value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })} />
         </FormField>
 

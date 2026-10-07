@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const { PrismaClient } = require("@prisma/client");
+const { ensureIndexes } = require("./ensure-indexes");
 
 const prisma = new PrismaClient();
 
@@ -97,6 +98,7 @@ async function migrateFlowsJson() {
 }
 
 async function main() {
+  await ensureIndexes(prisma);
   await seedDoctors();
   await seedLabTests();
   await migrateFlowsJson();

@@ -5,6 +5,13 @@ const createAppointmentSchema = z.object({
   scheduledAt: z.coerce.date(),
   type: z.enum(["in-person", "telehealth"]).default("in-person"),
   notes: z.string().max(2000).optional(),
+  paymentStatus: z.enum(["PAY_AT_CLINIC", "PAID_ONLINE"]).default("PAY_AT_CLINIC"),
+  paymentMethod: z.string().max(50).optional(),
+});
+
+const rescheduleAppointmentSchema = z.object({
+  newScheduledAt: z.coerce.date(),
+  notes: z.string().max(500).optional(),
 });
 
 const updateAppointmentStatusSchema = z.object({
@@ -19,4 +26,15 @@ const availabilitySchema = z.object({
   slotDurationMins: z.number().int().min(5).max(240).default(30),
 });
 
-module.exports = { createAppointmentSchema, updateAppointmentStatusSchema, availabilitySchema };
+const medicalRecordSchema = z.object({
+  diagnosisNotes: z.string().trim().max(5000).optional(),
+  prescriptionNotes: z.string().trim().max(5000).optional(),
+});
+
+module.exports = {
+  createAppointmentSchema,
+  rescheduleAppointmentSchema,
+  updateAppointmentStatusSchema,
+  availabilitySchema,
+  medicalRecordSchema,
+};

@@ -1,3 +1,7 @@
+const path = require("path");
+// Ensure .env is loaded regardless of current working directory
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+require("dotenv").config({ path: path.resolve(__dirname, "../../../.env") });
 require("dotenv").config();
 const { z } = require("zod");
 
@@ -10,6 +14,10 @@ const envSchema = z.object({
   VIASOCKET_PROJECT_ID: z.string().min(1),
   VIASOCKET_EMBED_SECRET: z.string().min(1),
   CLIENT_ORIGIN: z.string().optional(),
+  // Google sign-in is disabled (button shows an error) until all three are set.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CALLBACK_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -1,19 +1,41 @@
 const { prisma } = require("../config/prismaClient");
-const { NotFoundError, ForbiddenError, ConflictError } = require("../utils/apiError");
+const { NotFoundError, ForbiddenError, ConflictError, BadRequestError } = require("../utils/apiError");
 const notificationService = require("./notification.service");
 const viaSocketService = require("./viaSocket.service");
+const doctorService = require("./doctor.service");
+const { buildAppointmentEvent } = require("./appointmentEvents");
 
-async function createAppointment(patient, { doctorId, scheduledAt, type, notes }) {
-  const doctor = await prisma.doctorProfile.findUnique({
-    where: { id: doctorId },
-    include: { user: { select: { name: true } } },
-  });
+// What API responses expose about the doctor — contact details stay out of
+// responses and only go into the (whitelisted) automation payload.
+const DOCTOR_PUBLIC_FIELDS = {
+  include: { user: { select: { id: true, name: true } } },
+};
+
+async function createAppointment(patient, { doctorId, scheduledAt, type, notes, paymentStatus, paymentMethod }) {
+  const doctor = await prisma.doctorProfile.findUnique({ where: { id: doctorId }, ...DOCTOR_PUBLIC_FIELDS });
   if (!doctor) throw new NotFoundError("Doctor not found");
+
+  // Re-derive open slots server-side so leave days, buffers and past times
+  // are enforced even if a client skips the slot picker.
+  const openSlots = await doctorService.getAvailableSlots(doctorId, scheduledAt);
+  if (!openSlots.some((slot) => slot.getTime() === scheduledAt.getTime())) {
+    throw new ConflictError("That time is no longer available. Please pick another slot.");
+  }
 
   let appointment;
   try {
     appointment = await prisma.appointment.create({
-      data: { patientId: patient.id, doctorId, scheduledAt, type, notes, status: "PENDING" },
+      data: {
+        patientId: patient.id,
+        doctorId,
+        scheduledAt,
+        type,
+        notes,
+        status: "PENDING",
+        feeAtBooking: doctor.fee,
+        paymentStatus: paymentStatus || "PAY_AT_CLINIC",
+        paymentMethod: paymentMethod || null,
+      },
     });
   } catch (err) {
     if (err.code === "P2002") throw new ConflictError("That slot was just taken. Please pick another.");
@@ -40,19 +62,11 @@ async function createAppointment(patient, { doctorId, scheduledAt, type, notes }
     relatedEntityId: appointment.id,
   });
 
-  // Whitelisted fields only — never spread the full patient/doctor record
-  // into a third-party automation payload.
-  await viaSocketService.sendEvent("appointment.created", {
-    event: "appointment.created",
-    appointment: {
-      id: appointment.id,
-      scheduledAt: appointment.scheduledAt,
-      type: appointment.type,
-      status: appointment.status,
-    },
-    patient: { name: patient.name, email: patient.email },
-    doctor: { name: doctor.user.name, specialty: doctor.specialty },
-  });
+  await viaSocketService.sendEvent(
+    "appointment.created",
+    await buildAppointmentEvent("appointment.created", appointment.id),
+    { ownerUserIds: [doctor.userId, patient.id] }
+  );
 
   return appointment;
 }
@@ -77,8 +91,8 @@ async function getOwnedAppointment(appointmentId, user) {
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
     include: {
-      doctor: { include: { user: { select: { id: true, name: true } } } },
-      patient: { select: { id: true, name: true, email: true } },
+      doctor: DOCTOR_PUBLIC_FIELDS,
+      patient: { select: { id: true, name: true, email: true, phone: true } },
     },
   });
   if (!appointment) throw new NotFoundError("Appointment not found");
@@ -112,14 +126,126 @@ async function updateStatus(appointmentId, user, { status, cancellationReason })
     relatedEntityId: appointment.id,
   });
 
-  await viaSocketService.sendEvent(`appointment.${status.toLowerCase()}`, {
-    event: `appointment.${status.toLowerCase()}`,
-    appointment: { id: appointment.id, scheduledAt: appointment.scheduledAt, status },
-    patient: { name: appointment.patient.name, email: appointment.patient.email },
-    doctor: { name: appointment.doctor.user.name },
+  const eventName = `appointment.${status.toLowerCase()}`;
+  await viaSocketService.sendEvent(
+    eventName,
+    await buildAppointmentEvent(eventName, updated.id),
+    { ownerUserIds: [appointment.doctor.user.id, appointment.patientId] }
+  );
+
+  return updated;
+}
+
+async function rescheduleAppointment(appointmentId, user, { newScheduledAt, notes }) {
+  const appointment = await getOwnedAppointment(appointmentId, user);
+  if (["CANCELLED", "REJECTED", "COMPLETED"].includes(appointment.status)) {
+    throw new BadRequestError(`Cannot reschedule a ${appointment.status.toLowerCase()} appointment`);
+  }
+
+  // Enforce 2-hour minimum advance notice rule
+  const now = Date.now();
+  const appointmentTime = new Date(appointment.scheduledAt).getTime();
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  if (appointmentTime - now < TWO_HOURS_MS) {
+    throw new BadRequestError("Appointments can only be rescheduled at least 2 hours in advance.");
+  }
+
+  const targetDate = new Date(newScheduledAt);
+  if (Number.isNaN(targetDate.getTime()) || targetDate.getTime() <= now) {
+    throw new BadRequestError("Please select a valid future date and time.");
+  }
+
+  // Check doctor availability for the new time slot
+  const openSlots = await doctorService.getAvailableSlots(appointment.doctorId, targetDate);
+  if (!openSlots.some((slot) => slot.getTime() === targetDate.getTime())) {
+    throw new ConflictError("That time slot is not available. Please choose another slot.");
+  }
+
+  let updated;
+  try {
+    updated = await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        scheduledAt: targetDate,
+        originalScheduledAt: appointment.originalScheduledAt || appointment.scheduledAt,
+        rescheduledCount: { increment: 1 },
+        ...(notes !== undefined ? { notes } : {}),
+      },
+    });
+  } catch (err) {
+    if (err.code === "P2002") throw new ConflictError("That slot was just taken. Please pick another.");
+    throw err;
+  }
+
+  const doctorUserId = appointment.doctor.user.id;
+  const patientUserId = appointment.patientId;
+
+  await notificationService.createNotification({
+    userId: doctorUserId,
+    category: "APPOINTMENT",
+    type: "appointment.rescheduled",
+    title: "Appointment rescheduled",
+    body: `${appointment.patient.name} rescheduled their appointment to ${targetDate.toLocaleString()}.`,
+    relatedEntityType: "Appointment",
+    relatedEntityId: appointment.id,
+  });
+
+  await notificationService.createNotification({
+    userId: patientUserId,
+    category: "APPOINTMENT",
+    type: "appointment.rescheduled",
+    title: "Appointment rescheduled",
+    body: `Your appointment with ${appointment.doctor.user.name} was rescheduled to ${targetDate.toLocaleString()}.`,
+    relatedEntityType: "Appointment",
+    relatedEntityId: appointment.id,
+  });
+
+  await viaSocketService.sendEvent(
+    "appointment.rescheduled",
+    await buildAppointmentEvent("appointment.rescheduled", updated.id),
+    { ownerUserIds: [doctorUserId, patientUserId] }
+  );
+
+  return updated;
+}
+
+// Prescriptions and reports stay inside BookEase — deliberately no viaSocket
+// event here, so medical content never reaches a third-party automation.
+async function saveMedicalRecord(appointmentId, user, { diagnosisNotes, prescriptionNotes, reportUrl }) {
+  const appointment = await getOwnedAppointment(appointmentId, user);
+  if (user.role !== "DOCTOR") throw new ForbiddenError("Only the treating doctor can add records");
+  if (appointment.status !== "COMPLETED") {
+    throw new BadRequestError("Records can only be added to completed appointments");
+  }
+
+  const updated = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: {
+      ...(diagnosisNotes !== undefined ? { diagnosisNotes } : {}),
+      ...(prescriptionNotes !== undefined ? { prescriptionNotes } : {}),
+      ...(reportUrl ? { reportUrls: { push: reportUrl } } : {}),
+    },
+  });
+
+  await notificationService.createNotification({
+    userId: appointment.patientId,
+    category: "APPOINTMENT",
+    type: "appointment.record_added",
+    title: "New medical record",
+    body: `${appointment.doctor.user.name} added a prescription or report to your visit. See Medical Records.`,
+    relatedEntityType: "Appointment",
+    relatedEntityId: appointment.id,
   });
 
   return updated;
 }
 
-module.exports = { createAppointment, listForPatient, listForDoctor, getOwnedAppointment, updateStatus };
+module.exports = {
+  createAppointment,
+  rescheduleAppointment,
+  listForPatient,
+  listForDoctor,
+  getOwnedAppointment,
+  updateStatus,
+  saveMedicalRecord,
+};

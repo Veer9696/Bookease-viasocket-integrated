@@ -18,7 +18,7 @@ async function getById(req, res) {
 }
 
 async function updateStatus(req, res) {
-  const booking = await labBookingService.updateStatus(req.params.id, req.user.id, req.body.status);
+  const booking = await labBookingService.updateStatus(req.params.id, req.user, req.body.status);
   res.json(booking);
 }
 

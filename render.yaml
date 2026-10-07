@@ -8,10 +8,14 @@ services:
       cd server && npm install && npx prisma generate &&
       cd ../client && npm install && npm run build
     startCommand: >
-      cd server && npx prisma db push --accept-data-loss=false && npm start
+      cd server && npx prisma db push && node prisma/ensure-indexes.js && npm start
     envVars:
       - key: NODE_ENV
         value: production
+      # Clinic timezone: slot times and the dates/times in automation emails
+      # use it. Render's default is UTC.
+      - key: TZ
+        value: Asia/Kolkata
       # MongoDB Atlas connection string — set manually in the Render dashboard.
       - key: DATABASE_URL
         sync: false

@@ -2,6 +2,7 @@ import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "../notifications/NotificationBell";
 import Button from "../common/Button";
+import Logo from "../common/Logo";
 
 const linkClass = ({ isActive }) =>
   `px-3 py-2 text-sm font-medium rounded-full ${isActive ? "bg-primary-light text-primary" : "text-gray-600 hover:text-primary"}`;
@@ -12,7 +13,8 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-100 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <Link to="/" className="text-xl font-bold text-primary">
+        <Link to="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+          <Logo />
           BookEase
         </Link>
 

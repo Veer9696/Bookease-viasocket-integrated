@@ -27,13 +27,19 @@ export function AuthProvider({ children }) {
     return res.user;
   }, []);
 
+  const completeGoogleSignup = useCallback(async (payload) => {
+    const res = await authApi.googleComplete(payload);
+    setUser(res.user);
+    return res.user;
+  }, []);
+
   const logout = useCallback(async () => {
     await authApi.logout();
     setUser(null);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, completeGoogleSignup, logout }}>
       {children}
     </AuthContext.Provider>
   );

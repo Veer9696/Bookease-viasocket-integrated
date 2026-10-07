@@ -14,6 +14,11 @@ function errorHandler(err, req, res, next) {
     });
   }
 
+  if (err && err.name === "MulterError") {
+    const message = err.code === "LIMIT_FILE_SIZE" ? "File is too large (max 10 MB)" : err.message;
+    return res.status(400).json({ error: message });
+  }
+
   if (err && err.code === "P2002") {
     return res.status(409).json({ error: "That slot was just taken. Please pick another." });
   }

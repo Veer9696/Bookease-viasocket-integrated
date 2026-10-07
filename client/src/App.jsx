@@ -6,6 +6,7 @@ import RoleRoute from "./routes/RoleRoute";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import GoogleSignupPage from "./pages/GoogleSignupPage";
 import DoctorsListPage from "./pages/DoctorsListPage";
 import DoctorDetailPage from "./pages/DoctorDetailPage";
 import BookingWizardPage from "./pages/BookingWizardPage";
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/signup/google" element={<GoogleSignupPage />} />
           <Route path="/doctors" element={<DoctorsListPage />} />
           <Route path="/doctors/:id" element={<DoctorDetailPage />} />
           <Route path="/lab-tests" element={<LabTestsPage />} />

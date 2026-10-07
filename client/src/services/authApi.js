@@ -5,4 +5,6 @@ export const authApi = {
   login: (payload) => apiClient.post("/auth/login", payload),
   logout: () => apiClient.post("/auth/logout"),
   me: () => apiClient.get("/auth/me"),
+  googlePending: () => apiClient.get("/auth/google/pending"),
+  googleComplete: (payload) => apiClient.post("/auth/google/complete", payload),
 };

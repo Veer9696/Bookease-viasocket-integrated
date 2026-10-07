@@ -4,7 +4,11 @@
   "description": "BookEase - Smart appointment booking for modern clinics",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server/src/index.js",
+    "dev": "npm run dev --prefix server",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

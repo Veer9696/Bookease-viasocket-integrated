@@ -1,7 +1,9 @@
 const doctorService = require("../services/doctor.service");
+const { BadRequestError } = require("../utils/apiError");
 
 async function list(req, res) {
-  const doctors = await doctorService.listDoctors({ specialty: req.query.specialty });
+  const { specialty, minFee, maxFee, gender, availableToday } = req.query;
+  const doctors = await doctorService.listDoctors({ specialty, minFee, maxFee, gender, availableToday });
   res.json(doctors);
 }
 
@@ -12,6 +14,7 @@ async function getById(req, res) {
 
 async function getSlots(req, res) {
   const date = new Date(req.query.date);
+  if (Number.isNaN(date.getTime())) throw new BadRequestError("A valid date is required");
   const slots = await doctorService.getAvailableSlots(req.params.id, date);
   res.json(slots);
 }
@@ -27,10 +30,20 @@ async function setAvailability(req, res) {
   res.status(204).end();
 }
 
-async function addTimeOff(req, res) {
+async function updateSettings(req, res) {
   const doctor = await doctorService.getDoctorProfileForUser(req.user.id);
-  const timeOff = await doctorService.addTimeOff(doctor.id, req.body);
-  res.status(201).json(timeOff);
+  res.json(await doctorService.updateSettings(doctor.id, req.body));
 }
 
-module.exports = { list, getById, getSlots, getMyProfile, setAvailability, addTimeOff };
+async function addLeave(req, res) {
+  const doctor = await doctorService.getDoctorProfileForUser(req.user.id);
+  res.status(201).json(await doctorService.addLeave(doctor.id, req.body));
+}
+
+async function removeLeave(req, res) {
+  const doctor = await doctorService.getDoctorProfileForUser(req.user.id);
+  await doctorService.removeLeave(doctor.id, req.params.timeOffId);
+  res.status(204).end();
+}
+
+module.exports = { list, getById, getSlots, getMyProfile, setAvailability, updateSettings, addLeave, removeLeave };

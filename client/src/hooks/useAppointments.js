@@ -25,6 +25,19 @@ export function useUpdateAppointmentStatus() {
     mutationFn: ({ id, ...payload }) => appointmentsApi.updateStatus(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["analytics"] });
+      refresh();
+    },
+  });
+}
+
+export function useRescheduleAppointment() {
+  const queryClient = useQueryClient();
+  const { refresh } = useNotifications();
+  return useMutation({
+    mutationFn: ({ id, ...payload }) => appointmentsApi.reschedule(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       refresh();
     },
   });
