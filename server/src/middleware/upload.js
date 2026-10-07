@@ -4,7 +4,10 @@ const crypto = require("crypto");
 const multer = require("multer");
 const { BadRequestError } = require("../utils/apiError");
 
-const UPLOAD_DIR = path.join(process.env.UPLOAD_DIR || path.join(__dirname, "..", "..", "uploads"), "reports");
+const defaultUploadBase = process.env.VERCEL
+  ? path.join("/tmp", "uploads")
+  : path.join(__dirname, "..", "..", "uploads");
+const UPLOAD_DIR = path.join(process.env.UPLOAD_DIR || defaultUploadBase, "reports");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const ALLOWED_TYPES = {
