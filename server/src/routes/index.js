@@ -2,6 +2,14 @@ const { Router } = require("express");
 
 const router = Router();
 
+router.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+  });
+});
+
 router.use("/auth", require("./auth.routes"));
 router.use("/doctors", require("./doctors.routes"));
 router.use("/appointments", require("./appointments.routes"));

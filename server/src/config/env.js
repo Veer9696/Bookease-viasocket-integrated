@@ -23,9 +23,22 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("Invalid environment configuration:");
-  console.error(parsed.error.flatten().fieldErrors);
-  process.exit(1);
+  const missing = parsed.error.flatten().fieldErrors;
+  const missingKeys = Object.keys(missing);
+  console.error("==================================================");
+  console.error("CRITICAL: Invalid or missing environment configuration:");
+  console.error(JSON.stringify(missing, null, 2));
+  console.error("Please add the missing environment variables in your environment or Vercel dashboard.");
+  console.error("==================================================");
+
+  if (process.env.VERCEL) {
+    throw new Error(
+      `BookEase deployment error: Missing required environment variables on Vercel: [${missingKeys.join(", ")}]. ` +
+      `Please configure these in Vercel Dashboard -> Settings -> Environment Variables.`
+    );
+  } else {
+    process.exit(1);
+  }
 }
 
 module.exports = { env: parsed.data };
