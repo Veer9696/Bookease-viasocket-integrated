@@ -3,10 +3,13 @@ const { Router } = require("express");
 const router = Router();
 
 router.get("/health", (req, res) => {
+  const { isEnvValid, envErrors } = require("../config/env");
   res.json({
-    status: "ok",
+    status: isEnvValid ? "ok" : "misconfigured",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
+    configured: isEnvValid,
+    ...(isEnvValid ? {} : { missingEnvVars: Object.keys(envErrors || {}) }),
   });
 });
 
